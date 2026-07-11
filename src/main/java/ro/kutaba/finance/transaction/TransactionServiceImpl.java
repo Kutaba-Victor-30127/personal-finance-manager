@@ -2,32 +2,36 @@ package ro.kutaba.finance.transaction;
 
 import ro.kutaba.finance.category.Category;
 
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.security.core.Authentication;
 import ro.kutaba.finance.user.User;
 import ro.kutaba.finance.category.CategoryRepository;
-import ro.kutaba.finance.user.UserRepository;
+import ro.kutaba.finance.exception.CategoryNotFoundException;
+import ro.kutaba.finance.exception.TransactionNotFoundException;
+import ro.kutaba.finance.exception.UnauthorizedException;
+import ro.kutaba.finance.security.CurrentUserService;
 
-import java.util.List;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
-    public TransactionServiceImpl(TransactionRepository transactionRepository, CategoryRepository categoryRepository, UserRepository userRepository) {
+    public TransactionServiceImpl(TransactionRepository transactionRepository, CategoryRepository categoryRepository, CurrentUserService currentUserService) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
-        this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
     }
 
     @Override
     public TransactionResponse create(CreateTransactionRequest request) {
         
-        User user = getCurrentUser();
+        User user = currentUserService.getCurrentUser();
 
         Category category = getCategory(request.categoryId());
 
@@ -46,27 +50,39 @@ public class TransactionServiceImpl implements TransactionService {
     }  
     
     @Override
-    public List<TransactionResponse> getAll() {
-        User user = getCurrentUser();
+    public Page<TransactionResponse> getAll(
+                        int page, 
+                        int size,
+                        String sortBy,
+                        String sortDir,
+                        TransactionFilter filter) {
 
-        return transactionRepository.findByUser(user).stream()
-                .map(TransactionMapper::toResponse)
-                .toList();
+        User user = currentUserService.getCurrentUser();
+
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() 
+                                                    : Sort.by(sortBy).descending();
+                    
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Transaction> transactionsPage =
+                    transactionRepository.findAll(
+                            TransactionSpecification.withFilter(filter, user), 
+                            pageable);
+
+        return transactionsPage.map(TransactionMapper::toResponse);
     }
+    
 
     @Override
     public TransactionResponse update(Long id, CreateTransactionRequest request) {
 
-        User currentUser = getCurrentUser();
+        User currentUser = currentUserService.getCurrentUser();
 
         Transaction transaction = transactionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+                .orElseThrow(TransactionNotFoundException::new);
+
+        validateOwner(transaction, currentUser);
 
         Category category = getCategory(request.categoryId());
-
-        if (!transaction.getUser().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Unauthorized to update this transaction");
-        }
 
         transaction.setTitle(request.title());
         transaction.setDescription(request.description());
@@ -82,29 +98,26 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public void delete(Long id) {
-        User currentUser = getCurrentUser();
+        User currentUser = currentUserService.getCurrentUser();
 
         Transaction transaction = transactionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
-
-        if (!transaction.getUser().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Unauthorized to delete this transaction");
-        }
-
+                .orElseThrow(TransactionNotFoundException::new);
+        
+        validateOwner(transaction, currentUser);
+        
         transactionRepository.delete(transaction);
-    }
-
-    private User getCurrentUser(){
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     private Category getCategory(Long id){
         return categoryRepository
                 .findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(CategoryNotFoundException::new);
+    }
+
+    private void validateOwner(Transaction transaction, User currentUser){
+        
+        if (!transaction.getUser().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedException();
+        }
     }
 }

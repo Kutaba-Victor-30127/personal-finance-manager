@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
+import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -20,7 +21,7 @@ public class CategoryController {
     }
 
     @PostMapping
-    public CategoryResponse create(@RequestBody CreateCategoryRequest request){
+    public CategoryResponse create(@Valid @RequestBody CreateCategoryRequest request){
 
         return categoryService.create(request);
     }

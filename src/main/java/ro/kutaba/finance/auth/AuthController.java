@@ -3,6 +3,8 @@ package ro.kutaba.finance.auth;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -14,7 +16,9 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request){
+    public ResponseEntity<AuthResponse> register(
+        @Valid 
+        @RequestBody RegisterRequest request){
         
         authService.register(request);
 
@@ -24,7 +28,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request){
+    public ResponseEntity<AuthResponse> login(
+        @Valid
+        @RequestBody LoginRequest request){
 
         String token = authService.login(request);
 

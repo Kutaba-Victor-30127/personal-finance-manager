@@ -6,6 +6,8 @@ import ro.kutaba.finance.user.UserRepository;
 import ro.kutaba.finance.user.Role;
 import ro.kutaba.finance.user.User;
 import ro.kutaba.finance.config.JwtService;
+import ro.kutaba.finance.exception.UserNotFoundException;
+import ro.kutaba.finance.exception.InvalidCredentialsException;
 
 @Service
 public class AuthService {
@@ -23,7 +25,7 @@ public class AuthService {
     public void register(RegisterRequest request){
 
         if (userRepository.findByUsername(request.username()).isPresent()){
-            throw new RuntimeException("Username already exists");
+            throw new UserNotFoundException();
         }
 
         User user = new User(
@@ -44,7 +46,7 @@ public class AuthService {
             request.password(),
             user.getPassword()
         )){
-            throw new RuntimeException("Invalid password");
+            throw new InvalidCredentialsException();
         }
 
         return jwtService.generateToken(user.getUsername());
