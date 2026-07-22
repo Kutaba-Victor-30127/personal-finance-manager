@@ -1,6 +1,9 @@
 package ro.kutaba.finance.category;
 
 import org.springframework.stereotype.Service;
+
+import ro.kutaba.finance.exception.CategoryNotFoundException;
+
 import java.util.List;
 
 @Service
@@ -34,6 +37,29 @@ public class CategoryService {
                 category.getName()
             ))
             .toList();
+    }
+
+    public CategoryResponse update(Long id, CreateCategoryRequest request){
+
+        Category category = categoryRepository.findById(id)
+                                .orElseThrow(() -> new CategoryNotFoundException());
+
+        category.setName(request.name());
+
+        Category updatedCategory = categoryRepository.save(category);
+
+        return new CategoryResponse(
+                updatedCategory.getId(),
+                updatedCategory.getName()
+        );
+    }
+
+    public void delete(Long id){
+
+        Category category = categoryRepository.findById(id)
+                                .orElseThrow(() -> new CategoryNotFoundException());
+
+        categoryRepository.delete(category);
     }
 
 }
