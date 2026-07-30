@@ -16,10 +16,10 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtService = new JwtService();
+        this.jwtService = jwtService;
     }
 
     public void register(RegisterRequest request){
@@ -49,7 +49,7 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
 
-        return jwtService.generateToken(user.getUsername());
+        return jwtService.generateAccessToken(user.getUsername());
     }
 
 }
