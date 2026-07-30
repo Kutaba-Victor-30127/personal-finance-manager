@@ -7,6 +7,8 @@ import ro.kutaba.finance.user.Role;
 import ro.kutaba.finance.user.User;
 import ro.kutaba.finance.config.JwtService;
 import ro.kutaba.finance.exception.UserNotFoundException;
+import ro.kutaba.finance.refresh.RefreshToken;
+import ro.kutaba.finance.refresh.RefreshTokenService;
 import ro.kutaba.finance.exception.InvalidCredentialsException;
 
 @Service
@@ -15,11 +17,17 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(
+                    UserRepository userRepository, 
+                    PasswordEncoder passwordEncoder, 
+                    JwtService jwtService,
+                    RefreshTokenService refreshTokenService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public void register(RegisterRequest request){
@@ -37,10 +45,10 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    public String login(LoginRequest request){
+    public AuthResponse login(LoginRequest request){
         
         User user = userRepository.findByUsername(request.username())
-        .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(UserNotFoundException::new);
 
         if (!passwordEncoder.matches(
             request.password(),
@@ -49,7 +57,14 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
 
-        return jwtService.generateAccessToken(user.getUsername());
+        String accessToken = jwtService.generateAccessToken(user.getUsername());
+
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
+        return new AuthResponse(
+            accessToken,
+            refreshToken.getToken()
+        );
     }
 
 }

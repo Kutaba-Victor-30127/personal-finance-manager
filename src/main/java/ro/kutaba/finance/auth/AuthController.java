@@ -16,14 +16,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(
+    public ResponseEntity<MessageResponse> register(
         @Valid 
         @RequestBody RegisterRequest request){
         
         authService.register(request);
 
         return ResponseEntity.ok(
-            new AuthResponse("User registered successfully")
+            new MessageResponse("User registered successfully")
         );
     }
 
@@ -32,11 +32,9 @@ public class AuthController {
         @Valid
         @RequestBody LoginRequest request){
 
-        String token = authService.login(request);
+        AuthResponse response = authService.login(request);
 
-        return ResponseEntity.ok(
-            new AuthResponse(token)
-        );
+        return ResponseEntity.ok(response);
     }
     
 }
