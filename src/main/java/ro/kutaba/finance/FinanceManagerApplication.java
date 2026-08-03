@@ -7,6 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class FinanceManagerApplication {
 
 	public static void main(String[] args) {
+
+		System.out.println("========== VERSION 2 ==========");
 		SpringApplication.run(FinanceManagerApplication.class, args);
 	}
 

@@ -10,6 +10,7 @@ import ro.kutaba.finance.exception.UserNotFoundException;
 import ro.kutaba.finance.refresh.RefreshToken;
 import ro.kutaba.finance.refresh.RefreshTokenService;
 import ro.kutaba.finance.exception.InvalidCredentialsException;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
@@ -65,6 +66,28 @@ public class AuthService {
             accessToken,
             refreshToken.getToken()
         );
+    }
+
+    @Transactional
+    public AuthResponse refreshToken(RefreshTokenRequest request){
+
+        RefreshToken refreshToken = refreshTokenService.findByToken(request.refreshToken());
+
+        refreshTokenService.verifyExpiration(refreshToken);
+
+        User user = refreshToken.getUser();
+
+        refreshTokenService.delete(refreshToken);
+        
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
+
+        String accessToken = jwtService.generateAccessToken(user.getUsername());
+
+        return new AuthResponse(
+            accessToken,
+            newRefreshToken.getToken()
+        );
+        
     }
 
 }
