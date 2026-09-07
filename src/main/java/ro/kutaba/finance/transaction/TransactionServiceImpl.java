@@ -14,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
@@ -50,6 +51,7 @@ public class TransactionServiceImpl implements TransactionService {
     }  
     
     @Override
+    @Transactional(readOnly = true)
     public Page<TransactionResponse> getAll(
                         int page, 
                         int size,
@@ -73,6 +75,7 @@ public class TransactionServiceImpl implements TransactionService {
     
 
     @Override
+    @Transactional
     public TransactionResponse update(Long id, CreateTransactionRequest request) {
 
         User currentUser = currentUserService.getCurrentUser();

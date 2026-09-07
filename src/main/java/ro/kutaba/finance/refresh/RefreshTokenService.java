@@ -45,6 +45,12 @@ public class RefreshTokenService {
                             .orElseThrow(RefreshTokenNotFoundException::new);
     }
 
+    public RefreshToken findByTokenForUpdate(String token) {
+
+        return refreshTokenRepository.findByTokenForUpdate(token)
+                            .orElseThrow(RefreshTokenNotFoundException::new);
+    }
+
     public RefreshToken verifyExpiration(RefreshToken token){
 
         if (token.getExpiryDate().isBefore(LocalDateTime.now())){

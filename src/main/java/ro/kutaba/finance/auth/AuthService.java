@@ -71,7 +71,8 @@ public class AuthService {
     @Transactional
     public AuthResponse refreshToken(RefreshTokenRequest request){
 
-        RefreshToken refreshToken = refreshTokenService.findByToken(request.refreshToken());
+        RefreshToken refreshToken =
+                refreshTokenService.findByTokenForUpdate(request.refreshToken());
 
         refreshTokenService.verifyExpiration(refreshToken);
 
@@ -88,6 +89,16 @@ public class AuthService {
             newRefreshToken.getToken()
         );
         
+    }
+
+    public void logout(RefreshTokenRequest request){
+
+        RefreshToken refreshToken = 
+                refreshTokenService.findByToken(
+                    request.refreshToken()
+                );
+
+        refreshTokenService.delete(refreshToken);
     }
 
 }

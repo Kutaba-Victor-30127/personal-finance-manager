@@ -8,6 +8,7 @@ import ro.kutaba.finance.transaction.TransactionRepository;
 import ro.kutaba.finance.transaction.TransactionResponse;
 import ro.kutaba.finance.transaction.TransactionType;
 import ro.kutaba.finance.user.User;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.YearMonth;
@@ -31,6 +32,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DashboardResponse getDashboard(){
 
         List<Transaction> transactions = getTransactionsForCurrentUser();

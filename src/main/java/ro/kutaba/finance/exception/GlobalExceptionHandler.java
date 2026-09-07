@@ -50,6 +50,26 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(RefreshTokenNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRefreshTokenNotFound(
+            RefreshTokenNotFoundException ex) {
+
+        return buildErrorResponse(
+            HttpStatus.UNAUTHORIZED,
+            ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(RefreshTokenExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleRefreshTokenExpired(
+            RefreshTokenExpiredException ex) {
+
+        return buildErrorResponse(
+            HttpStatus.UNAUTHORIZED,
+            ex.getMessage()
+        );
+    }
+
     private ResponseEntity<ErrorResponse> buildErrorResponse(
             HttpStatus status,
             String message) {
