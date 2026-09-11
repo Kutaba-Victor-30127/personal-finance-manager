@@ -12,5 +12,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
                                                     
     List<Transaction> findByUser(User user);
 
+    List<Transaction> findByIdAndUser(Long id, User user);
+
     Page<Transaction> findByUser(User user, Pageable pageable);
 }

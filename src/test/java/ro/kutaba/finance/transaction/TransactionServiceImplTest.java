@@ -2,16 +2,11 @@ package ro.kutaba.finance.transaction;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import ro.kutaba.finance.category.CategoryRepository;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -19,17 +14,23 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.List;
-
-import ro.kutaba.finance.user.User;
-import ro.kutaba.finance.security.CurrentUserService;
 import ro.kutaba.finance.category.Category;
+import ro.kutaba.finance.category.CategoryRepository;
 import ro.kutaba.finance.exception.CategoryNotFoundException;
 import ro.kutaba.finance.exception.TransactionNotFoundException;
 import ro.kutaba.finance.exception.UnauthorizedException;
+import ro.kutaba.finance.security.CurrentUserService;
+import ro.kutaba.finance.user.User;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceImplTest {
@@ -41,39 +42,43 @@ class TransactionServiceImplTest {
     private CategoryRepository categoryRepository;
 
     @Mock
-    private CurrentUserService currentUserService;  
+    private CurrentUserService currentUserService;
 
     @InjectMocks
     private TransactionServiceImpl transactionService;
 
+
     @Test
     void shouldDeleteTransaction() {
 
-    // Arrange
-    User user = new User();
-    user.setId(1L);
+        // Arrange
+        User user = new User();
+        user.setId(1L);
 
-    Transaction transaction = new Transaction();
-    transaction.setId(10L);
-    transaction.setUser(user);
+        Transaction transaction = new Transaction();
+        transaction.setId(10L);
+        transaction.setUser(user);
 
-    when(currentUserService.getCurrentUser())
-            .thenReturn(user);
+        when(currentUserService.getCurrentUser())
+                .thenReturn(user);
 
-    when(transactionRepository.findById(10L))
-            .thenReturn(Optional.of(transaction));
+        when(transactionRepository.findById(10L))
+                .thenReturn(Optional.of(transaction));
 
-    // Act
-    transactionService.delete(10L);
+        // Act
+        transactionService.delete(10L);
 
-    // Assert
-    verify(transactionRepository).delete(transaction);
+        // Assert
+        verify(currentUserService).getCurrentUser();
+        verify(transactionRepository).findById(10L);
+        verify(transactionRepository).delete(transaction);
     }
 
-    @Test
-    void shouldThrowUnauthorizedExceptionWhenDeletingAnotherUsersTransaction(){
 
-        //Arange
+    @Test
+    void shouldThrowUnauthorizedExceptionWhenDeletingAnotherUsersTransaction() {
+
+        // Arrange
         User currentUser = new User();
         currentUser.setId(1L);
 
@@ -91,18 +96,20 @@ class TransactionServiceImplTest {
                 .thenReturn(Optional.of(transaction));
 
         // Act + Assert
-
         assertThrows(
-            UnauthorizedException.class,
-            () -> transactionService.delete(10L)
+                UnauthorizedException.class,
+                () -> transactionService.delete(10L)
         );
+
+        verify(transactionRepository).findById(10L);
 
         verify(transactionRepository, never())
                 .delete(any(Transaction.class));
     }
 
+
     @Test
-    void shouldThrowTransactionNotFoundExceptionWhenDeletingNonExistingTransaction(){
+    void shouldThrowTransactionNotFoundExceptionWhenDeletingNonExistingTransaction() {
 
         // Arrange
         User currentUser = new User();
@@ -116,14 +123,16 @@ class TransactionServiceImplTest {
 
         // Act + Assert
         assertThrows(
-            TransactionNotFoundException.class,
-            () -> transactionService.delete(10L)
+                TransactionNotFoundException.class,
+                () -> transactionService.delete(10L)
         );
+
+        verify(transactionRepository).findById(10L);
 
         verify(transactionRepository, never())
                 .delete(any(Transaction.class));
-
     }
+
 
     @Test
     void shouldCreateTransactionSuccessfully() {
@@ -135,6 +144,7 @@ class TransactionServiceImplTest {
         Category category = new Category();
         category.setId(1L);
         category.setName("Food");
+        category.setUser(user);
 
         CreateTransactionRequest request =
                 new CreateTransactionRequest(
@@ -149,7 +159,7 @@ class TransactionServiceImplTest {
         when(currentUserService.getCurrentUser())
                 .thenReturn(user);
 
-        when(categoryRepository.findById(1L))
+        when(categoryRepository.findByIdAndUser(1L, user))
                 .thenReturn(Optional.of(category));
 
         when(transactionRepository.save(any(Transaction.class)))
@@ -163,20 +173,26 @@ class TransactionServiceImplTest {
         ArgumentCaptor<Transaction> captor =
                 ArgumentCaptor.forClass(Transaction.class);
 
-        verify(transactionRepository).save(captor.capture());
+        verify(transactionRepository)
+                .save(captor.capture());
 
         Transaction saved = captor.getValue();
 
         assertEquals("Lidl", saved.getTitle());
         assertEquals("Weekly groceries", saved.getDescription());
         assertEquals(new BigDecimal("185"), saved.getAmount());
+        assertEquals(LocalDate.of(2026, 1, 5), saved.getDate());
         assertEquals(TransactionType.EXPENSE, saved.getType());
         assertEquals(category, saved.getCategory());
         assertEquals(user, saved.getUser());
 
         assertEquals("Lidl", response.title());
-        }
-        
+
+        verify(categoryRepository)
+                .findByIdAndUser(1L, user);
+    }
+
+
     @Test
     void shouldThrowCategoryNotFoundExceptionWhenCreatingTransaction() {
 
@@ -197,7 +213,7 @@ class TransactionServiceImplTest {
         when(currentUserService.getCurrentUser())
                 .thenReturn(user);
 
-        when(categoryRepository.findById(1L))
+        when(categoryRepository.findByIdAndUser(1L, user))
                 .thenReturn(Optional.empty());
 
         // Act + Assert
@@ -206,26 +222,31 @@ class TransactionServiceImplTest {
                 () -> transactionService.create(request)
         );
 
+        verify(categoryRepository)
+                .findByIdAndUser(1L, user);
+
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
-        }
+    }
 
-        
-     @Test
-     void shouldUpdateTransactionSuccessfully(){
 
+    @Test
+    void shouldUpdateTransactionSuccessfully() {
+
+        // Arrange
         User user = new User();
         user.setId(1L);
 
         Category category = new Category();
         category.setId(2L);
         category.setName("Food");
+        category.setUser(user);
 
         Transaction transaction = new Transaction();
         transaction.setId(10L);
         transaction.setUser(user);
 
-        CreateTransactionRequest request = 
+        CreateTransactionRequest request =
                 new CreateTransactionRequest(
                         "Kaufland",
                         "Weekly groceries",
@@ -233,7 +254,7 @@ class TransactionServiceImplTest {
                         LocalDate.of(2026, 2, 10),
                         TransactionType.EXPENSE,
                         2L
-                        );
+                );
 
         when(currentUserService.getCurrentUser())
                 .thenReturn(user);
@@ -241,35 +262,44 @@ class TransactionServiceImplTest {
         when(transactionRepository.findById(10L))
                 .thenReturn(Optional.of(transaction));
 
-        when(categoryRepository.findById(2L))
+        when(categoryRepository.findByIdAndUser(2L, user))
                 .thenReturn(Optional.of(category));
 
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-        TransactionResponse response = transactionService.update(10L, request);
-
-        assertEquals("Kaufland", response.title());     
+        TransactionResponse response =
+                transactionService.update(10L, request);
 
         // Assert
-        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        ArgumentCaptor<Transaction> captor =
+                ArgumentCaptor.forClass(Transaction.class);
 
-        verify(transactionRepository).save(captor.capture());
+        verify(transactionRepository)
+                .save(captor.capture());
 
         Transaction updated = captor.getValue();
 
         assertEquals("Kaufland", updated.getTitle());
-        assertEquals("Weekly groceries", updated.getDescription());             
+        assertEquals("Weekly groceries", updated.getDescription());
         assertEquals(new BigDecimal("200"), updated.getAmount());
         assertEquals(LocalDate.of(2026, 2, 10), updated.getDate());
         assertEquals(TransactionType.EXPENSE, updated.getType());
         assertEquals(category, updated.getCategory());
 
-     }
+        assertEquals("Kaufland", response.title());
 
-     @Test
-     void shouldThrowUnauthorizedExceptionWhenUpdatingAnotherUsersTransaction() {
+        verify(transactionRepository)
+                .findById(10L);
+
+        verify(categoryRepository)
+                .findByIdAndUser(2L, user);
+    }
+
+
+    @Test
+    void shouldThrowUnauthorizedExceptionWhenUpdatingAnotherUsersTransaction() {
 
         // Arrange
         User currentUser = new User();
@@ -304,9 +334,15 @@ class TransactionServiceImplTest {
                 () -> transactionService.update(10L, request)
         );
 
+        verify(transactionRepository).findById(10L);
+
+        verify(categoryRepository, never())
+                .findByIdAndUser(any(), any());
+
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
-        }
+    }
+
 
     @Test
     void shouldThrowTransactionNotFoundExceptionWhenUpdatingNonExistingTransaction() {
@@ -337,13 +373,20 @@ class TransactionServiceImplTest {
                 () -> transactionService.update(10L, request)
         );
 
+        verify(transactionRepository).findById(10L);
+
+        verify(categoryRepository, never())
+                .findByIdAndUser(any(), any());
+
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
-        }
+    }
+
 
     @Test
     void shouldReturnTransactionsPage() {
 
+        // Arrange
         User user = new User();
         user.setId(1L);
 
@@ -352,43 +395,52 @@ class TransactionServiceImplTest {
         category.setName("Food");
 
         Transaction transaction = new Transaction();
-        transaction.setId(1L); 
+        transaction.setId(1L);
         transaction.setUser(user);
         transaction.setTitle("Lidl");
-        transaction.setDescription("Weekly groceries"); 
+        transaction.setDescription("Weekly groceries");
         transaction.setAmount(new BigDecimal("200"));
         transaction.setDate(LocalDate.of(2026, 2, 10));
         transaction.setType(TransactionType.EXPENSE);
         transaction.setCategory(category);
 
-        Page<Transaction> page = new PageImpl<>(List.of(transaction));
+        Page<Transaction> page =
+                new PageImpl<>(List.of(transaction));
 
         when(currentUserService.getCurrentUser())
                 .thenReturn(user);
 
         when(transactionRepository.findAll(
-                any(Specification.class), 
+                any(Specification.class),
                 any(Pageable.class)))
                 .thenReturn(page);
 
         // Act
-        Page<TransactionResponse> responsePage = transactionService.getAll(
-                0,
-                10,
-                "date", 
-                "asc", 
-                new TransactionFilter(
-                        null,
-                        null,
-                        null,
-                        null
-                )
-        );
+        Page<TransactionResponse> responsePage =
+                transactionService.getAll(
+                        0,
+                        10,
+                        "date",
+                        "asc",
+                        new TransactionFilter(
+                                null,
+                                null,
+                                null,
+                                null
+                        )
+                );
 
-        verify(transactionRepository).findAll(
-                any(Specification.class), 
-                any(Pageable.class));
+        // Assert
+        assertEquals(1, responsePage.getTotalElements());
+        assertEquals("Lidl", responsePage.getContent().get(0).title());
+
+        verify(transactionRepository)
+                .findAll(
+                        any(Specification.class),
+                        any(Pageable.class)
+                );
     }
+
 
     @Test
     void shouldReturnEmptyPageWhenNoTransactionsExist() {
@@ -424,8 +476,12 @@ class TransactionServiceImplTest {
         assertTrue(result.isEmpty());
 
         verify(transactionRepository)
-                .findAll(any(Specification.class), any(Pageable.class));
-        }
+                .findAll(
+                        any(Specification.class),
+                        any(Pageable.class)
+                );
+    }
+
 
     @Test
     void shouldThrowCategoryNotFoundExceptionWhenUpdatingTransaction() {
@@ -454,18 +510,25 @@ class TransactionServiceImplTest {
         when(transactionRepository.findById(10L))
                 .thenReturn(Optional.of(transaction));
 
-        when(categoryRepository.findById(2L))
+        when(categoryRepository.findByIdAndUser(2L, user))
                 .thenReturn(Optional.empty());
 
         // Act + Assert
         assertThrows(
                 CategoryNotFoundException.class,
                 () -> transactionService.update(10L, request)
-        );      
+        );
+
+        verify(transactionRepository)
+                .findById(10L);
+
+        verify(categoryRepository)
+                .findByIdAndUser(2L, user);
 
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
-        }
+    }
+
 
     @Test
     void shouldAssignCurrentUserToTransactionWhenCreating() {
@@ -476,13 +539,15 @@ class TransactionServiceImplTest {
 
         Category category = new Category();
         category.setId(1L);
+        category.setName("Salary");
+        category.setUser(user);
 
         CreateTransactionRequest request =
                 new CreateTransactionRequest(
                         "Salary",
                         "Google",
                         new BigDecimal("8000"),
-                        LocalDate.now(),
+                        LocalDate.of(2026, 9, 10),
                         TransactionType.INCOME,
                         1L
                 );
@@ -490,7 +555,7 @@ class TransactionServiceImplTest {
         when(currentUserService.getCurrentUser())
                 .thenReturn(user);
 
-        when(categoryRepository.findById(1L))
+        when(categoryRepository.findByIdAndUser(1L, user))
                 .thenReturn(Optional.of(category));
 
         when(transactionRepository.save(any(Transaction.class)))
@@ -506,8 +571,12 @@ class TransactionServiceImplTest {
         verify(transactionRepository)
                 .save(captor.capture());
 
-        assertEquals(user, captor.getValue().getUser());
-        }
+        assertEquals(
+                user,
+                captor.getValue().getUser()
+        );
+    }
+
 
     @Test
     void shouldAssignCategoryToTransactionWhenCreating() {
@@ -519,13 +588,14 @@ class TransactionServiceImplTest {
         Category category = new Category();
         category.setId(7L);
         category.setName("Shopping");
+        category.setUser(user);
 
         CreateTransactionRequest request =
                 new CreateTransactionRequest(
                         "Nike",
                         "Shoes",
                         new BigDecimal("450"),
-                        LocalDate.now(),
+                        LocalDate.of(2026, 9, 10),
                         TransactionType.EXPENSE,
                         7L
                 );
@@ -533,7 +603,7 @@ class TransactionServiceImplTest {
         when(currentUserService.getCurrentUser())
                 .thenReturn(user);
 
-        when(categoryRepository.findById(7L))
+        when(categoryRepository.findByIdAndUser(7L, user))
                 .thenReturn(Optional.of(category));
 
         when(transactionRepository.save(any(Transaction.class)))
@@ -549,82 +619,114 @@ class TransactionServiceImplTest {
         verify(transactionRepository)
                 .save(captor.capture());
 
-        assertEquals(category, captor.getValue().getCategory());
-        }
+        assertEquals(
+                category,
+                captor.getValue().getCategory()
+        );
+    }
+
 
     @Test
-    void shouldUseAscendingSort(){
+    void shouldUseAscendingSort() {
 
+        // Arrange
         User user = new User();
         user.setId(1L);
 
         when(currentUserService.getCurrentUser())
                 .thenReturn(user);
-        
+
         when(transactionRepository.findAll(
                 any(Specification.class),
                 any(Pageable.class)))
                 .thenReturn(Page.empty());
 
         // Act
-        transactionService.getAll(      
+        transactionService.getAll(
                 0,
                 10,
                 "amount",
                 "asc",
-                new TransactionFilter(null,null,null,null)
+                new TransactionFilter(
+                        null,
+                        null,
+                        null,
+                        null
+                )
         );
 
         // Assert
-        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        ArgumentCaptor<Pageable> captor =
+                ArgumentCaptor.forClass(Pageable.class);
 
         verify(transactionRepository)
-                .findAll(any(Specification.class), captor.capture());
+                .findAll(
+                        any(Specification.class),
+                        captor.capture()
+                );
 
         Pageable pageable = captor.getValue();
-        
+
         assertEquals(
                 Sort.Direction.ASC,
-                pageable.getSort().getOrderFor("amount").getDirection()
+                pageable
+                        .getSort()
+                        .getOrderFor("amount")
+                        .getDirection()
         );
     }
 
-    @Test
-    void shouldUseDescendingSort(){
 
+    @Test
+    void shouldUseDescendingSort() {
+
+        // Arrange
         User user = new User();
         user.setId(1L);
-        
+
         when(currentUserService.getCurrentUser())
                 .thenReturn(user);
-                
+
         when(transactionRepository.findAll(
                 any(Specification.class),
                 any(Pageable.class)))
                 .thenReturn(Page.empty());
-        
+
         // Act
-                transactionService.getAll(      
+        transactionService.getAll(
                 0,
                 10,
                 "date",
                 "desc",
-                new TransactionFilter(null,null,null,null)
+                new TransactionFilter(
+                        null,
+                        null,
+                        null,
+                        null
+                )
         );
-        
+
         // Assert
-        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
-        
+        ArgumentCaptor<Pageable> captor =
+                ArgumentCaptor.forClass(Pageable.class);
+
         verify(transactionRepository)
-                .findAll(any(Specification.class), captor.capture());
-        
+                .findAll(
+                        any(Specification.class),
+                        captor.capture()
+                );
+
         Pageable pageable = captor.getValue();
-                
+
         assertEquals(
                 Sort.Direction.DESC,
-                pageable.getSort().getOrderFor("date").getDirection()
-                );
-        }
+                pageable
+                        .getSort()
+                        .getOrderFor("date")
+                        .getDirection()
+        );
+    }
+
 
     @Test
     void shouldUseCorrectPageNumber() {
@@ -647,7 +749,12 @@ class TransactionServiceImplTest {
                 5,
                 "date",
                 "desc",
-                new TransactionFilter(null, null, null, null)
+                new TransactionFilter(
+                        null,
+                        null,
+                        null,
+                        null
+                )
         );
 
         // Assert
@@ -655,12 +762,21 @@ class TransactionServiceImplTest {
                 ArgumentCaptor.forClass(Pageable.class);
 
         verify(transactionRepository)
-                .findAll(any(Specification.class), captor.capture());
+                .findAll(
+                        any(Specification.class),
+                        captor.capture()
+                );
 
         Pageable pageable = captor.getValue();
 
-        assertEquals(2, pageable.getPageNumber());
-        assertEquals(5, pageable.getPageSize());
-        }
+        assertEquals(
+                2,
+                pageable.getPageNumber()
+        );
 
+        assertEquals(
+                5,
+                pageable.getPageSize()
+        );
+    }
 }

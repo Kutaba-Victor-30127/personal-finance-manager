@@ -22,6 +22,21 @@ export const createCategory = async (
     return response.data;
 }
 
+export const updateCategory = async (
+    id: number,
+    name: string
+): Promise<Category> => {
+
+    const response = await api.put<Category>(
+        `/categories/${id}`,
+        {
+            name: name,
+        }
+    );
+
+    return response.data;
+}
+
 export const deleteCategory = async (
     id: number
 ): Promise<void> => {
@@ -30,3 +45,4 @@ export const deleteCategory = async (
         `/categories/${id}`
     );
 };
+

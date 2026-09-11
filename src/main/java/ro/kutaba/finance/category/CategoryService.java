@@ -4,6 +4,9 @@ import org.springframework.stereotype.Service;
 
 import ro.kutaba.finance.exception.CategoryNotFoundException;
 
+import ro.kutaba.finance.user.User;
+import ro.kutaba.finance.security.CurrentUserService;
+
 import java.util.List;
 
 @Service
@@ -11,14 +14,22 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
 
-    public CategoryService(CategoryRepository categoryRepository) {
+    private final CurrentUserService currentUserService;
+    
+
+    public CategoryService(CategoryRepository categoryRepository, CurrentUserService currentUserService) {
         this.categoryRepository = categoryRepository;
+        this.currentUserService = currentUserService;
     }
 
     public CategoryResponse create(CreateCategoryRequest request){
 
+        User currentUser = currentUserService.getCurrentUser();
+
         Category category = new Category();
+
         category.setName(request.name());
+        category.setUser(currentUser);
 
         Category savedCategory = categoryRepository.save(category);
 
@@ -30,7 +41,9 @@ public class CategoryService {
 
     public List<CategoryResponse> getAll() {
 
-        return categoryRepository.findAll()
+        User currentUser = currentUserService.getCurrentUser();
+
+        return categoryRepository.findByUser(currentUser)
             .stream()
             .map(category -> new CategoryResponse(
                 category.getId(),
@@ -41,8 +54,10 @@ public class CategoryService {
 
     public CategoryResponse update(Long id, CreateCategoryRequest request){
 
-        Category category = categoryRepository.findById(id)
-                                .orElseThrow(() -> new CategoryNotFoundException());
+        User currentUser = currentUserService.getCurrentUser();
+
+        Category category = categoryRepository.findByIdAndUser(id, currentUser)
+                                .orElseThrow(CategoryNotFoundException::new);
 
         category.setName(request.name());
 
@@ -56,8 +71,10 @@ public class CategoryService {
 
     public void delete(Long id){
 
-        Category category = categoryRepository.findById(id)
-                                .orElseThrow(() -> new CategoryNotFoundException());
+        User currentUser = currentUserService.getCurrentUser();
+
+        Category category = categoryRepository.findByIdAndUser(id, currentUser)
+                                .orElseThrow(CategoryNotFoundException::new);
 
         categoryRepository.delete(category);
     }

@@ -1,6 +1,8 @@
 package ro.kutaba.finance.category;
 
 import ro.kutaba.finance.exception.CategoryNotFoundException;
+import ro.kutaba.finance.security.CurrentUserService;
+import ro.kutaba.finance.user.User;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +29,9 @@ class CategoryServiceTest {
     @Mock
     private CategoryRepository categoryRepository;
 
+    @Mock
+    private CurrentUserService currentUserService;
+
     @InjectMocks
     private CategoryService categoryService;
 
@@ -34,6 +39,9 @@ class CategoryServiceTest {
     void shouldUpdateCategory() {
 
         // Arrange
+        User currentUser = new User();
+        currentUser.setId(1L);
+
         Category category = new Category();
         category.setId(1L);
         category.setName("Food");
@@ -41,7 +49,10 @@ class CategoryServiceTest {
         CreateCategoryRequest request =
                 new CreateCategoryRequest("Groceries");
 
-        when(categoryRepository.findById(1L))
+        when(currentUserService.getCurrentUser())
+                .thenReturn(currentUser);
+
+        when(categoryRepository.findByIdAndUser(1L, currentUser))
                 .thenReturn(Optional.of(category));
 
         when(categoryRepository.save(any(Category.class)))
@@ -55,7 +66,7 @@ class CategoryServiceTest {
         assertEquals(1L, response.id());
         assertEquals("Groceries", response.name());
 
-        verify(categoryRepository).findById(1L);
+        verify(categoryRepository).findByIdAndUser(1L, currentUser);
         verify(categoryRepository).save(category);
     }
 
@@ -63,10 +74,16 @@ class CategoryServiceTest {
     void shouldThrowWhenCategoryNotFoundOnUpdate() {
 
         // Arrange
+        User currentUser = new User();
+        currentUser.setId(1L);
+
         CreateCategoryRequest request =
                 new CreateCategoryRequest("Groceries");
+        
+        when(currentUserService.getCurrentUser())
+                .thenReturn(currentUser);
 
-        when(categoryRepository.findById(1L))
+        when(categoryRepository.findByIdAndUser(1L, currentUser))
                 .thenReturn(Optional.empty());
 
         // Act + Assert
@@ -75,7 +92,7 @@ class CategoryServiceTest {
                 () -> categoryService.update(1L, request)
         );
 
-        verify(categoryRepository).findById(1L);
+        verify(categoryRepository).findByIdAndUser(1L, currentUser);
         verify(categoryRepository, never()).save(any());
     }
 
@@ -87,14 +104,20 @@ class CategoryServiceTest {
         category.setId(1L);
         category.setName("Food");
 
-        when(categoryRepository.findById(1L))
+        User currentUser = new User();
+        currentUser.setId(1L);
+
+        when(currentUserService.getCurrentUser())
+                .thenReturn(currentUser);
+
+        when(categoryRepository.findByIdAndUser(1L, currentUser))
                 .thenReturn(Optional.of(category));
 
         // Act
         categoryService.delete(1L);
 
         // Assert
-        verify(categoryRepository).findById(1L);
+        verify(categoryRepository).findByIdAndUser(1L, currentUser);
         verify(categoryRepository).delete(category);
     }
 
@@ -102,7 +125,13 @@ class CategoryServiceTest {
     void shouldThrowWhenCategoryNotFoundOnDelete() {
 
         // Arrange
-        when(categoryRepository.findById(1L))
+        User currentUser = new User();
+        currentUser.setId(1L);
+
+        when(currentUserService.getCurrentUser())
+                .thenReturn(currentUser);
+
+        when(categoryRepository.findByIdAndUser(1L, currentUser))
                 .thenReturn(Optional.empty());
 
         // Act + Assert
@@ -111,7 +140,7 @@ class CategoryServiceTest {
                 () -> categoryService.delete(1L)
         );
 
-        verify(categoryRepository).findById(1L);
+        verify(categoryRepository).findByIdAndUser(1L, currentUser);
         verify(categoryRepository, never()).delete(any());
     }
 

@@ -29,11 +29,13 @@ import {
 
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 
 import {
   createCategory,
   deleteCategory,
   getCategories,
+  updateCategory,
 } from "../services/categoryService";
 
 import type { Category } from "../types/category";
@@ -58,6 +60,8 @@ export default function CategoriesPage() {
 
   const [saving, setSaving] =
     useState(false);
+
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   const [snackbar, setSnackbar] =
     useState({
@@ -106,7 +110,7 @@ export default function CategoriesPage() {
   }, [loadCategories]);
 
 
-  const handleCreateCategory =
+  const handleSaveCategory =
     async () => {
 
       const name =
@@ -120,20 +124,40 @@ export default function CategoriesPage() {
 
         setSaving(true);
 
-        await createCategory(name);
+        if (selectedCategory) {
+
+          await updateCategory(
+            selectedCategory.id,
+            name
+          );
+
+          setSnackbar({
+            open: true,
+            message:
+              "Category updated successfully.",
+            severity: "success",
+          });
+
+        } else {
+
+          await createCategory(name);
+
+          setSnackbar({
+            open: true,
+            message:
+              "Category added successfully.",
+            severity: "success",
+          });
+        }
+        
 
         setCategoryName("");
+
+        setSelectedCategory(null);
 
         setDialogOpen(false);
 
         await loadCategories();
-
-        setSnackbar({
-          open: true,
-          message:
-            "Category added successfully.",
-          severity: "success",
-        });
 
       } catch (error) {
 
@@ -260,6 +284,8 @@ export default function CategoriesPage() {
           startIcon={<AddIcon />}
           onClick={() => {
 
+            setSelectedCategory(null);
+
             setCategoryName("");
 
             setDialogOpen(true);
@@ -357,6 +383,24 @@ export default function CategoriesPage() {
                       align="right"
                     >
 
+                      <Tooltip title="Edit category">
+
+                        <IconButton
+                          color="primary"
+                          onClick={() => {
+
+                            setSelectedCategory(category);
+
+                            setCategoryName(category.name);
+
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+
+                      </Tooltip>
+
                       <Tooltip
                         title="Delete category"
                       >
@@ -394,15 +438,25 @@ export default function CategoriesPage() {
 
       <Dialog
         open={dialogOpen}
-        onClose={() =>
-          setDialogOpen(false)
-        }
+        onClose={() =>{
+          
+          setDialogOpen(false);
+
+          setSelectedCategory(null);
+
+          setCategoryName("");
+        }}
         fullWidth
         maxWidth="xs"
       >
 
         <DialogTitle>
-          Add Category
+          
+          { selectedCategory ? 
+            "Edit Category" : 
+            "Add Category"
+          }
+
         </DialogTitle>
 
 
@@ -432,9 +486,14 @@ export default function CategoriesPage() {
         <DialogActions>
 
           <Button
-            onClick={() =>
-              setDialogOpen(false)
-            }
+            onClick={() => {
+
+              setDialogOpen(false);
+
+              setSelectedCategory(null);
+
+              setCategoryName("");
+            }}
             disabled={saving}
           >
             Cancel
@@ -448,13 +507,15 @@ export default function CategoriesPage() {
               categoryName.trim() === ""
             }
             onClick={() =>
-              void handleCreateCategory()
+              void handleSaveCategory()
             }
           >
 
             {saving
               ? "Saving..."
-              : "Add"
+              : selectedCategory
+                ? "Update"
+                : "Add"
             }
 
           </Button>

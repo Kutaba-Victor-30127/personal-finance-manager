@@ -34,7 +34,7 @@ public class TransactionServiceImpl implements TransactionService {
         
         User user = currentUserService.getCurrentUser();
 
-        Category category = getCategory(request.categoryId());
+        Category category = getCategory(request.categoryId(), user);
 
         Transaction transaction = new Transaction();
         transaction.setTitle(request.title());
@@ -85,7 +85,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         validateOwner(transaction, currentUser);
 
-        Category category = getCategory(request.categoryId());
+        Category category = getCategory(request.categoryId(), currentUser);
 
         transaction.setTitle(request.title());
         transaction.setDescription(request.description());
@@ -100,6 +100,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         User currentUser = currentUserService.getCurrentUser();
 
@@ -111,9 +112,9 @@ public class TransactionServiceImpl implements TransactionService {
         transactionRepository.delete(transaction);
     }
 
-    private Category getCategory(Long id){
+    private Category getCategory(Long id, User currentUser) {
         return categoryRepository
-                .findById(id)
+                .findByIdAndUser(id, currentUser)
                 .orElseThrow(CategoryNotFoundException::new);
     }
 
