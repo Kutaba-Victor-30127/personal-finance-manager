@@ -1,6 +1,5 @@
 package ro.kutaba.finance.dashboard;
 
-import ro.kutaba.finance.exception.UserNotFoundException;
 import ro.kutaba.finance.security.CurrentUserService;
 import ro.kutaba.finance.transaction.Transaction;
 import ro.kutaba.finance.transaction.TransactionMapper;
@@ -18,6 +17,10 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,9 +36,9 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
-    public DashboardResponse getDashboard(){
+    public DashboardResponse getDashboard(DashboardFilter filter) {
 
-        List<Transaction> transactions = getTransactionsForCurrentUser();
+        List<Transaction> transactions = getTransactionsForCurrentUser(filter);
 
         BigDecimal totalIncome = transactions.stream()
                                     .filter(transaction -> transaction.getType() == TransactionType.INCOME)
@@ -62,9 +65,10 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public List<CategorySummaryResponse> getCategorySummary() {
+    @Transactional(readOnly = true)
+    public List<CategorySummaryResponse> getCategorySummary(DashboardFilter filter) {
         
-        List<Transaction> transactions = getTransactionsForCurrentUser();
+        List<Transaction> transactions = getTransactionsForCurrentUser(filter);
 
         Map<String, List<Transaction>> groupedTransactions = transactions.stream()
                 .filter(transaction -> transaction.getType() == TransactionType.EXPENSE)
@@ -79,18 +83,111 @@ public class DashboardServiceImpl implements DashboardService {
                             .map(Transaction::getAmount)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+                            long transactionCount = entry.getValue().size();
+
                         return new CategorySummaryResponse(
                             entry.getKey(),
-                            total
+                            total,
+                            transactionCount
                         );
                 })
+                .sorted(
+                    Comparator.comparing(CategorySummaryResponse::total).reversed()
+                )
+
                 .toList();  
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<PeriodSummaryResponse> getPeriodSummary(DashboardFilter filter, GroupBy groupBy) {
+        
+        List<Transaction> transactions = getTransactionsForCurrentUser(filter);
+
+        Map<LocalDate, List<Transaction>>
+            groupedTransactions =
+                transactions.stream()
+
+                    .collect(
+                        Collectors.groupingBy(
+
+                            transaction ->
+                                getPeriodStart(
+                                    transaction.getDate(),
+                                    groupBy
+                                ),
+
+                            TreeMap::new,
+
+                            Collectors.toList()
+                        )
+                    );
+                                
+        return groupedTransactions
+            .entrySet()
+            .stream()
+
+            .map(entry -> {
+
+                BigDecimal income =
+                    entry.getValue()
+                        .stream()
+
+                        .filter(transaction ->
+                            transaction.getType()
+                                == TransactionType.INCOME
+                        )
+
+                        .map(
+                            Transaction::getAmount
+                        )
+
+                        .reduce(
+                            BigDecimal.ZERO,
+                            BigDecimal::add
+                        );
+
+
+                BigDecimal expenses =
+                    entry.getValue()
+                        .stream()
+
+                        .filter(transaction ->
+                            transaction.getType()
+                                == TransactionType.EXPENSE
+                        )
+
+                        .map(
+                            Transaction::getAmount
+                        )
+
+                        .reduce(
+                            BigDecimal.ZERO,
+                            BigDecimal::add
+                        );
+
+
+                return new PeriodSummaryResponse(
+                    entry.getKey(),
+                    income,
+                    expenses
+                );
+            })
+
+            .toList();
+
+}
+      
+
+    @Override
     public List<MonthlySummaryResponse> getMonthlySummary(){
 
-        List<Transaction> transactions = getTransactionsForCurrentUser();
+        List<Transaction> transactions = 
+                getTransactionsForCurrentUser(
+                    new DashboardFilter(
+                        null,
+                        null,
+                        null));
 
         Map<YearMonth, List<Transaction>> monthlyTransactions = transactions.stream()
                 .collect(Collectors.groupingBy(
@@ -123,8 +220,78 @@ public class DashboardServiceImpl implements DashboardService {
                 .toList();
     }
 
-    private List<Transaction> getTransactionsForCurrentUser(){
-        User user = currentUserService.getCurrentUser();
-        return transactionRepository.findByUser(user);
+
+    private LocalDate getPeriodStart(
+        LocalDate date,
+        GroupBy groupBy
+) {
+
+    return switch (groupBy) {
+
+        case DAY ->
+            date;
+
+        case WEEK ->
+            date.with(
+                TemporalAdjusters
+                    .previousOrSame(
+                        DayOfWeek.MONDAY
+                    )
+            );
+
+        case MONTH ->
+            date.withDayOfMonth(1);
+    };
+}
+
+    private List<Transaction> getTransactionsForCurrentUser(
+        DashboardFilter filter
+    ) {
+
+    User user =
+        currentUserService
+            .getCurrentUser();
+
+
+    return transactionRepository
+        .findByUser(user)
+        .stream()
+
+        .filter(transaction ->
+
+            filter.startDate() == null ||
+
+            !transaction
+                .getDate()
+                .isBefore(
+                    filter.startDate()
+                )
+        )
+
+        .filter(transaction ->
+
+            filter.endDate() == null ||
+
+            !transaction
+                .getDate()
+                .isAfter(
+                    filter.endDate()
+                )
+        )
+
+        .filter(transaction ->
+
+            filter.categoryId() == null ||
+
+            transaction
+                .getCategory()
+                .getId()
+                .equals(
+                    filter.categoryId()
+                )
+        )
+
+        .toList();
     }
+
 }

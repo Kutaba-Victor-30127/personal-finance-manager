@@ -50,7 +50,7 @@ class DashboardControllerTest {
                         List.of()
                 );
 
-        when(dashboardService.getDashboard())
+        when(dashboardService.getDashboard(new DashboardFilter(null,null,null)))
                 .thenReturn(response);
 
         mockMvc.perform(get("/api/dashboard"))
@@ -60,7 +60,7 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$.balance").value(1800))
                 .andExpect(jsonPath("$.transactionCount").value(15));
 
-        verify(dashboardService).getDashboard();
+        verify(dashboardService).getDashboard(new DashboardFilter(null,null,null));
     }
 
     @Test
@@ -69,10 +69,11 @@ class DashboardControllerTest {
         CategorySummaryResponse response =
                 new CategorySummaryResponse(
                         "Food",
-                        new BigDecimal("750")
+                        new BigDecimal("750"),
+                        3L
                 );
 
-        when(dashboardService.getCategorySummary())
+        when(dashboardService.getCategorySummary(new DashboardFilter(null,null,null)))
                 .thenReturn(List.of(response));
 
         mockMvc.perform(get("/api/dashboard/category-summary"))
@@ -80,7 +81,7 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$[0].category").value("Food"))
                 .andExpect(jsonPath("$[0].total").value(750));
 
-        verify(dashboardService).getCategorySummary();
+        verify(dashboardService).getCategorySummary(new DashboardFilter(null,null,null));
     }
 
     @Test

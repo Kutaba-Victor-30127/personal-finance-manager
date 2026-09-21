@@ -1,9 +1,9 @@
 package ro.kutaba.finance.dashboard;
 
-import org.hibernate.grammars.hql.HqlParser.CaseListContext;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -18,17 +18,28 @@ public class DashboardController {
     }
 
     @GetMapping
-    public DashboardResponse getDashboard() {
-        return dashboardService.getDashboard();
+    public DashboardResponse getDashboard(DashboardFilter filter) {
+        
+        return dashboardService.getDashboard(filter);
     }
 
     @GetMapping("/category-summary")
-    public List<CategorySummaryResponse> getCategorySummary() {
-        return dashboardService.getCategorySummary();
+    public List<CategorySummaryResponse> getCategorySummary(DashboardFilter filter) {
+        
+        return dashboardService.getCategorySummary(filter);
+    }
+
+    @GetMapping("/period-summary")
+    public List<PeriodSummaryResponse> getPeriodSummary(
+        DashboardFilter filter, 
+        @RequestParam(defaultValue = "MONTH") GroupBy groupBy) {
+        
+        return dashboardService.getPeriodSummary(filter, groupBy);
     }
 
     @GetMapping("/monthly-summary")
     public List<MonthlySummaryResponse> getMonthlySummary() {
+        
         return dashboardService.getMonthlySummary();
     }
 }

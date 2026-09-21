@@ -2,26 +2,17 @@ package ro.kutaba.finance.dashboard;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import ro.kutaba.finance.category.CategoryRepository;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.List;
 
 import ro.kutaba.finance.user.User;
@@ -30,9 +21,6 @@ import ro.kutaba.finance.transaction.TransactionRepository;
 import ro.kutaba.finance.transaction.TransactionType;
 import ro.kutaba.finance.transaction.Transaction;
 import ro.kutaba.finance.category.Category;
-import ro.kutaba.finance.exception.CategoryNotFoundException;
-import ro.kutaba.finance.exception.TransactionNotFoundException;
-import ro.kutaba.finance.exception.UnauthorizedException;
 
 @ExtendWith(MockitoExtension.class)
 class DashboardServiceImplTest {
@@ -96,7 +84,7 @@ class DashboardServiceImplTest {
                 ));
 
         //Act
-        DashboardResponse response = dashboardService.getDashboard();
+        DashboardResponse response = dashboardService.getDashboard(noFilter());
 
         //Assert
         assertEquals(new BigDecimal("7000"), response.totalIncome());
@@ -182,7 +170,7 @@ class DashboardServiceImplTest {
                 ));
 
         // Act
-        DashboardResponse response = dashboardService.getDashboard();
+        DashboardResponse response = dashboardService.getDashboard(noFilter());
 
         // Assert
         assertEquals(5, response.latestTransactions().size());
@@ -219,7 +207,7 @@ class DashboardServiceImplTest {
                 .thenReturn(List.of());
 
         //Act
-        DashboardResponse response = dashboardService.getDashboard();
+        DashboardResponse response = dashboardService.getDashboard(noFilter());
 
         //Assert
         assertEquals(BigDecimal.ZERO, response.totalIncome());
@@ -267,7 +255,7 @@ class DashboardServiceImplTest {
                 .thenReturn(List.of(t1, t2, t3));
 
         //Act
-        List<CategorySummaryResponse> categorySummary = dashboardService.getCategorySummary();
+        List<CategorySummaryResponse> categorySummary = dashboardService.getCategorySummary(noFilter());
 
         //Assert
         assertEquals(2, categorySummary.size());    
@@ -329,7 +317,7 @@ class DashboardServiceImplTest {
                         income
                 ));
 
-        List<CategorySummaryResponse> response = dashboardService.getCategorySummary();
+        List<CategorySummaryResponse> response = dashboardService.getCategorySummary(noFilter());
 
         assertEquals(1, response.size());
 
@@ -378,7 +366,7 @@ class DashboardServiceImplTest {
                 .thenReturn(List.of(t1, t2));
 
         List<CategorySummaryResponse> response =
-                dashboardService.getCategorySummary();
+                dashboardService.getCategorySummary(noFilter());
 
         assertEquals(1, response.size());
         assertEquals("Food", response.getFirst().category());
@@ -496,7 +484,7 @@ class DashboardServiceImplTest {
                 .thenReturn(List.of());
 
         List<CategorySummaryResponse> response =
-                dashboardService.getCategorySummary();
+                dashboardService.getCategorySummary(noFilter());
 
         assertTrue(response.isEmpty());
     }
@@ -519,5 +507,12 @@ class DashboardServiceImplTest {
         assertTrue(response.isEmpty());
     }
 
+    private DashboardFilter noFilter() {
+        return new DashboardFilter(
+                null,
+                null,
+                null
+        );
+    }
 
 }

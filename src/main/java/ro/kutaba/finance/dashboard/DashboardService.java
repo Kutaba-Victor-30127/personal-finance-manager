@@ -4,9 +4,11 @@ import java.util.List;
 
 public interface DashboardService {
 
-    DashboardResponse getDashboard();
+    DashboardResponse getDashboard(DashboardFilter filter);
 
-    List<CategorySummaryResponse> getCategorySummary();
+    List<CategorySummaryResponse> getCategorySummary(DashboardFilter filter);
+
+    List<PeriodSummaryResponse> getPeriodSummary(DashboardFilter filter, GroupBy groupBy);
 
     List<MonthlySummaryResponse> getMonthlySummary();
 
