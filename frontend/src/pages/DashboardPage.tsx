@@ -492,7 +492,8 @@ export default function DashboardPage() {
                                 variant="body2"
                                 color="text.secondary"
                             >
-                                {category.transactionCount} transactions
+                                {category.transactionCount}{" "}
+                                {category.transactionCount === 1 ? "transaction" : "transactions"}
                             </Typography>
                         </Box>
 
