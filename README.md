@@ -14,25 +14,25 @@ The project was developed as a production-style portfolio application, with focu
 
 Interactive financial overview with dynamic period filtering, expense breakdown by category and financial summary metrics.
 
-![Financial Dashboard](./finance-manager/docs/screenshots/dashboard.jpeg)
+![Financial Dashboard](./docs/screenshots/dashboard.jpeg)
 
 ### Spending Trend
 
 Income and expenses are dynamically aggregated by day, week or month depending on the selected period.
 
-![Spending Trend](./finance-manager/docs/screenshots/spending-trend.jpeg)
+![Spending Trend](./docs/screenshots/spending-trend.jpeg)
 
 ### Transaction Management
 
 Transactions support filtering, sorting, pagination, categories and full CRUD operations.
 
-![Transactions](./finance-manager/docs/screenshots/transactions.jpeg)
+![Transactions](./docs/screenshots/transactions.jpeg)
 
 ### Category Management
 
 Each authenticated user can create, edit and delete their own transaction categories.
 
-![Categories](./finance-manager/docs/screenshots/categories.jpeg)
+![Categories](./docs/screenshots/categories.jpeg)
 
 ---
 
